@@ -18,5 +18,11 @@ public class Address {
     private String ddd;
     private String siafi;
 
+    public void setCep(String cep) {
+        this.cep = cep.replaceAll("-", "");
+    }
 
+    public String getCep() {
+        return cep.replaceAll("-", "");
+    }
 }

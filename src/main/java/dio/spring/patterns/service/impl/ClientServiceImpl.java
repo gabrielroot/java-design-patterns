@@ -1,5 +1,6 @@
 package dio.spring.patterns.service.impl;
 
+import dio.spring.patterns.handler.ClientNotFoundException;
 import dio.spring.patterns.model.Address;
 import dio.spring.patterns.model.Client;
 import dio.spring.patterns.repository.AddressRepository;
@@ -29,16 +30,12 @@ public class ClientServiceImpl implements ClientService {
 
     @Override
     public Client findById(Long id) {
-        return clientRepository.findById(id).orElse(null);
+        return this.validateById(id);
     }
 
     @Override
-    public void update(Long id, Client client) {
-        Optional<Client> clientOptional = clientRepository.findById(id);
-        if (clientOptional.isEmpty()) {
-            return;
-        }
-
+    public void update(Long id, Client client) throws ClientNotFoundException {
+        this.validateById(id);
         this.saveClientAndAddress(client);
     }
 
@@ -49,17 +46,23 @@ public class ClientServiceImpl implements ClientService {
 
     @Override
     public void delete(Long id) {
+        this.validateById(id);
         clientRepository.deleteById(id);
     }
 
     private Client saveClientAndAddress(Client client) {
         String cep = client.getAddress().getCep();
-        Address locatedAddress = addressRepository.findById(cep).orElseGet(() -> {
-            Address address = viaCepService.locateCep(cep);
-            return address;
-        });
+        Address locatedAddress = addressRepository.findById(cep).orElseGet(() -> viaCepService.locateCep(cep));
 
-        addressRepository.save(locatedAddress);
+        client.setAddress(locatedAddress);
         return clientRepository.save(client);
+    }
+
+    private Client validateById(Long id) {
+        Optional<Client> clientOptional = clientRepository.findById(id);
+        if (clientOptional.isEmpty()) {
+            throw new ClientNotFoundException(id);
+        }
+        return clientOptional.get();
     }
 }
